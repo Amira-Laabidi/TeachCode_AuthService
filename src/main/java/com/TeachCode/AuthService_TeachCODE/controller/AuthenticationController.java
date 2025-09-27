@@ -7,6 +7,7 @@ import com.TeachCode.AuthService_TeachCODE.Dto.response.JwtAuthenticationRespons
 import com.TeachCode.AuthService_TeachCODE.Exception.OTPExpiredException;
 import com.TeachCode.AuthService_TeachCODE.Exception.TokenRefreshException;
 import com.TeachCode.AuthService_TeachCODE.entities.RefreshToken;
+import com.TeachCode.AuthService_TeachCODE.entities.User;
 import com.TeachCode.AuthService_TeachCODE.services.AuthenticationService;
 import com.TeachCode.AuthService_TeachCODE.services.RefreshTokenService;
 import com.TeachCode.AuthService_TeachCODE.services.impl.JwtServiceImpl;
@@ -15,14 +16,18 @@ import lombok.RequiredArgsConstructor;
 import org.json.JSONObject;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
 public class AuthenticationController {
+
     private final AuthenticationService authenticationService;
 
     private final RefreshTokenService refreshTokenService;
@@ -99,5 +104,32 @@ public class AuthenticationController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred");
         }
     }
+
+    @GetMapping("/users")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<User>> getAllUsers() {
+        return ResponseEntity.ok(authenticationService.getAllUsers());
+    }
+
+    @GetMapping("/users/{id}")
+//    @PreAuthorize("hasRole('ADMIN') or #id == principal.id")
+    public ResponseEntity<User> getUserById(@PathVariable Integer id) {
+        Optional<User> user = authenticationService.getUserById(id);
+        return user.map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
+    }
+
+    @PutMapping("/user/{id}")
+    @PreAuthorize("hasRole('ADMIN') or #id == principal.id")
+    public ResponseEntity<User> updateUser(@PathVariable Integer id, @RequestBody User updatedUser) {
+        return ResponseEntity.ok(authenticationService.updateUser(id, updatedUser));
+    }
+
+    @DeleteMapping("/users/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Void> deleteUser(@PathVariable Integer id) {
+        authenticationService.deleteUser(id);
+        return ResponseEntity.noContent().build();
+    }
+
 }
 

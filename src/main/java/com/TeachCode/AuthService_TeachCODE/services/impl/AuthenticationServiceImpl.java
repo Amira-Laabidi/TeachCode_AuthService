@@ -19,6 +19,8 @@ import org.springframework.stereotype.Service;
 
 
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
 
@@ -130,6 +132,42 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         userRepository.save(user);
     }
 
+    @Override
+    public List<User> getAllUsers() {
+        return userRepository.findAll();
+    }
+
+    @Override
+    public Optional<User> getUserById(Integer id) {
+        return userRepository.findById(id);
+    }
+
+    @Override
+    public User updateUser(Integer id, User updatedUser) {
+        return userRepository.findById(id)
+                .map(user -> {
+                    user.setName(updatedUser.getName());
+                    user.setEmail(updatedUser.getEmail());
+                    user.setPhoneNumber(updatedUser.getPhoneNumber());
+                    user.setAddress(updatedUser.getAddress());
+                    user.setDateOfBirth(updatedUser.getDateOfBirth());
+                    user.setRoles(updatedUser.getRoles());
+                    return userRepository.save(user);
+                })
+                .orElseThrow(() -> new RuntimeException("User not found with ID: " + id));
+    }
+
+    @Override
+    public void deleteUser(Integer userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // First clear any refresh tokens to avoid constraint violations
+        refreshTokenService.deleteByUser(user);
+
+        // This will automatically delete refresh tokens due to cascade
+        userRepository.delete(user);
+    }
 
 }
 
